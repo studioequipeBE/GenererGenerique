@@ -12,7 +12,9 @@ TODO : Amélioration intéressante à ajouter, savoir mettre des logos. (colonne
 """
 
 import csv
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageFont, ImageDraw
+
+dossier_travail = 'C:\\TMP\\'
 
 
 # Retourne un nombre sur un certain nombre de digits.
@@ -25,153 +27,446 @@ def digit(nombre_digit: int, valeur: int) -> str:
     return (texte + str(valeur))
 
 
+liste_font = []
+
+# Récupère dans un CSV les fonts/polices qu'on peut utiliser :
+with open(dossier_travail + 'font.csv', newline='', encoding='utf-8') as csvfile:
+    contenu = csv.reader(csvfile, delimiter=';', quotechar='|')
+
+    i = 0
+    for ligne in contenu:
+        if i != 0:
+            print(ligne[0])
+            liste_font.append({
+                'nom': ligne[0],
+                'normal': ligne[1],  # Ici ce sont les noms de fichier.
+                'gras': ligne[2],
+                'italique': ligne[3],
+                'italique-gras': ligne[4]
+            })
+
+        i = i + 1
+
+
+print('Nombre de font(s) trouvée(s) : ' + str(len(liste_font)))
+
+
+# Récupère une font via son nom (pas case sensitive).
+def findFontByName(nom: str):
+    for font in liste_font:
+        if font['nom'].lower() == nom.lower():
+            return font
+
+    return None
+
+
+liste_style = []
+
+# Récupère dans un CSV les différents styles du projet :
+with open(dossier_travail + 'style.csv', newline='', encoding='utf-8') as csvfile:
+    contenu = csv.reader(csvfile, delimiter=';', quotechar='|')
+
+    i = 0
+    for ligne in contenu:
+        if i != 0:
+
+            font = findFontByName(ligne[1]) # Récupère toutes les possibilités.
+            if ligne[4] == 'True' and ligne[5] == 'True':
+                font = font['italique-gras']
+            elif ligne[5] == 'True':
+                font = font['italique']
+            elif ligne[4] == 'True':
+                font = font['gras']
+            else:
+                font = font['normal']
+
+            liste_style.append({
+                'nom': ligne[0],
+                'font': font,
+                'souligner': True if ligne[6] == 'True' else False,
+                'taille': int(ligne[2]),
+                'couleur': ligne[3].split(),
+                'espace_gauche_droite': int(ligne[7]),
+                'espace_3colonnes': int(ligne[8]),
+                'espace_ligne': int(ligne[9])
+            })
+
+        i = i + 1
+
+print('Nombre de style(s) trouvée(s) : ' + str(len(liste_style)))
+
+
+# Récupère un style selon son nom :
+def findStyleByName(nom: str):
+
+    if nom is None:
+        return None
+
+    for style in liste_style:
+        if style['nom'].lower() == nom.lower():
+            return style
+
+    return None
+
+
 # Paramètres :
-fichier_csv = 'C:\\TMP\\generique.csv'
+fichier_csv = dossier_travail + 'generique.csv'
 
-# Résoluton :
-largeur = 1920
-hauteur = 1080
+# Récupère dans un CSV les réglages du projet :
+with open(dossier_travail + 'reglage.csv', newline='', encoding='utf-8') as csvfile:
+    contenu = csv.reader(csvfile, delimiter=';', quotechar='|')
 
-# Réglages :
-ratio = '2.39'  # Ratio si on veut mettre un cache.
-vitesse = 2  # Vitesse de defilement.
+    i = 0
+    for ligne in contenu:
+        if i > 1:
+            # Résoluton :
+            largeur = int(ligne[0])
+            hauteur = int(ligne[1])
 
-majuscule_poste = True
-majuscule_nom_famille = True  # Pas opérationnel, car comment savoir ce qui est du nom de famille et du prénom ?
+            # Réglages :
+            ratio = ligne[2]  # Ratio si on veut mettre un cache.
+            vitesse = int(ligne[3])  # Vitesse de defilement.
 
-typo_principale = 'arial.ttf'
-taille_typo = 20
-espace_ligne = 2
-espace = 6  # Espace entre "poste" et nom de la personne.
+            style_general = findStyleByName(ligne[4])
 
-couleur_fond = 'black'  # Il faut une bonne raison pour que le fond ne soit pas noir.
-couleur_texte = (235, 235, 235)
+            print('Style général : ' + str(style_general))
+
+            couleur_fond = ligne[5]  # Il faut une bonne raison pour que le fond ne soit pas noir.
+
+        i = i + 1
+
+# Récupère dans un CSV les réglages d'exports (in, out -> pas résolution ???) du projet :
+with open(dossier_travail + 'rendu.csv', newline='', encoding='utf-8') as csvfile:
+    contenu = csv.reader(csvfile, delimiter=';', quotechar='|')
+
+    i = 0
+    for ligne in contenu:
+        if i != 0:
+            in_rendu = None if ligne[0] == 'None' else int(ligne[0])
+            out_rendu = None if ligne[1] == 'None' else int(ligne[1])
+
+        i = i + 1
+
+
+# Valeur du crop si un output blanking est appliqué (si un output blanking n'est pas reconnu, on n'en met pas).
+crop = 0
+
+if ratio == '2.39':
+    crop = 138
+elif ratio == '1.85':
+    crop = 21
+elif ratio == '2.00':
+    crop = 60
+elif ratio == '2.1':
+    crop = 83
+else:
+    crop = 0
 
 generique = {
     'gauche-gauche': [],  # Si on sépare en 2 : la partie de gauche.
-    'droite-gauche': [],
-
+    'style-gauche-gauche': [],
     'gauche-centre': [],
-    'centre': [],  # Généralement le nom de la section.
-    'droite-centre': [],  # Nom de la personne.
+    'style-gauche-centre': [],
+    'gauche-droite': [],
+    'style-gauche-droite': [],
 
-    'gauche-droite': [],  # Si on sépare en 2 : la partie de droite.
+    'centre-gauche': [],
+    'style-centre-gauche': [],
+    'centre-centre': [],  # Généralement le nom de la section.
+    'image-centre-centre': [],
+    'style-centre-centre': [],
+    'centre-droite': [],  # Nom de la personne.
+    'style-centre-droite': [],
+
+    'droite-gauche': [],  # Si on sépare en 2 : la partie de droite.
+    'style-droite-gauche': [],
+    'droite-centre': [],
+    'style-droite-centre': [],
     'droite-droite': [],
+    'style-droite-droite': [],
+
+    'style-ligne': [],
+
+    'commentaire': []
 }
+
+
+# Style de la colonne est spécifique à cette entrée, mais le style de la ligne peut influencer le tout.
+# Le style général est là s'il n'y a rien d'autre.
+def getStyle(style_general, style_colonne, style_ligne):
+    # Définit le style général comme le par-défaut.
+    style = {
+        'font': style_general['font'],
+        'taille': style_general['taille'],
+        'couleur': style_general['couleur'],
+        'souligner': style_general['souligner'],
+        'espace_gauche_droite': style_general['espace_gauche_droite'],
+        'espace_3colonnes': style_general['espace_3colonnes'],
+        'espace_ligne': style_general['espace_ligne']
+    }
+
+    # Si on a un style dans la colonne, on l'utilise :
+    if style_colonne is not None:
+        style['font'] = style_colonne['font']
+        style['taille'] = style_colonne['taille']
+        style['couleur'] = style_colonne['couleur']
+        style['souligner'] = style_colonne['souligner']
+        style['espace_gauche_droite'] = style_colonne['espace_gauche_droite']
+
+    # Si on a un style dans la colonne "style-ligne", on l'utilise :
+    if style_ligne is not None:
+        style['espace_3colonnes'] = style_ligne['espace_3colonnes']
+        style['espace_ligne'] = style_ligne['espace_ligne']
+
+    style['font_objet'] = ImageFont.truetype(style['font'], int(style['taille']))
+
+    return style
+
+
+# Trouve un paramètre ("espacer", par exemple) dans la colonne "style".
+def styleValeurChiffre(style: str, parametre: str) -> int:
+    elements = style.split()
+
+    for n in range(0, len(elements)):
+        if elements[n] == parametre:
+            return int(elements[n + 1])
+
+    return 0
+
+
+# Si un parametre existe, on retourne True.
+def styleValeurExiste(style: str, parametre: str) -> bool:
+    elements = style.split()
+
+    for n in range(0, len(elements)):
+        if elements[n] == parametre:
+            return True
+
+    return False
+
 
 # Récupère générique d'un CSV :
 with open(fichier_csv, newline='', encoding='utf-8') as csvfile:
     contenu = csv.reader(csvfile, delimiter=';', quotechar='|')
+
     i = 0
     for ligne in contenu:
         if i != 0:
-            generique['gauche-gauche'].append(ligne[0])
-            generique['droite-gauche'].append(ligne[1])
 
-            generique['gauche-centre'].append(ligne[2])
-            generique['centre'].append(ligne[3])
-            generique['droite-centre'].append(ligne[4])
+            # Si la colonne "style-ligne" a quelque chose, on le renseigne.
+            style_ligne = None
+            if ligne[18] != '':
+                style_ligne = {
+                    'espace_3colonnes': styleValeurChiffre(ligne[18], 'espace_3colonnes'),
+                    'espace_ligne': styleValeurChiffre(ligne[18], 'espace_ligne')
+                }
 
-            generique['gauche-droite'].append(ligne[5])
-            generique['droite-droite'].append(ligne[6])
+            generique['gauche-gauche'].append(ligne[0].rstrip())
+            generique['style-gauche-gauche'].append(getStyle(style_general, findStyleByName(ligne[1]), style_ligne))
+            generique['gauche-centre'].append(ligne[2].strip())
+            generique['style-gauche-centre'].append(getStyle(style_general, findStyleByName(ligne[3]), style_ligne))
+            generique['gauche-droite'].append(ligne[4].lstrip())
+            generique['style-gauche-droite'].append(getStyle(style_general, findStyleByName(ligne[5]), style_ligne))
+
+            generique['centre-gauche'].append(ligne[6].rstrip())
+            generique['style-centre-gauche'].append(getStyle(style_general, findStyleByName(ligne[7]), style_ligne))
+
+            analyse = ligne[8].split()
+
+            # S'il y a deux éléments, peut-être que c'est une image.
+            if len(analyse) == 2:
+                if analyse[0] == '<image>':
+                    generique['image-centre-centre'].append(analyse[1])
+                else:
+                    generique['image-centre-centre'].append(None)
+                    generique['centre-centre'].append(ligne[8].strip())
+            else:
+                generique['image-centre-centre'].append(None)
+                generique['centre-centre'].append(ligne[8].strip())
+
+            generique['style-centre-centre'].append(getStyle(style_general, findStyleByName(ligne[9]), style_ligne))
+            generique['centre-droite'].append(ligne[10].lstrip())
+            generique['style-centre-droite'].append(getStyle(style_general, findStyleByName(ligne[11]), style_ligne))
+
+            generique['droite-gauche'].append(ligne[12].rstrip())
+            generique['style-droite-gauche'].append(getStyle(style_general, findStyleByName(ligne[13]), style_ligne))
+            generique['droite-centre'].append(ligne[14].strip())
+            generique['style-droite-centre'].append(getStyle(style_general, findStyleByName(ligne[15]), style_ligne))
+            generique['droite-droite'].append(ligne[16].lstrip())
+            generique['style-droite-droite'].append(getStyle(style_general, findStyleByName(ligne[17]), style_ligne))
+
+            generique['style-ligne'].append(style_ligne)
+            generique['commentaire'].append(ligne[19])
 
         i = i + 1
 
-fnt = ImageFont.truetype(typo_principale, taille_typo)
-
 # TODO : on devrait, depuis le nombre de ligne du CSV calculer le nombre d'image nécessaire.
-nb_image = 600
+nb_image = (24 * 60 * 3) + 50
 
-for j in range(0, nb_image):
-    print('Image : ' + str(j) + '/' + str(nb_image))
+
+# Ecrit un texte dans l'image.
+def drawText(draw, xy, texte, style, anchor):
+    draw.text(
+        xy=xy,
+        text=texte,
+        font=style['font_objet'],
+        fill=(int(style['couleur'][0]), int(style['couleur'][1]), int(style['couleur'][2])),
+        anchor=anchor
+    )
+
+    # Si doit être souligné le texte.
+    if style['souligner']:
+        left, top, right, bottom = draw.textbbox(xy=(0, 0), text=texte, font=style['font_objet'])
+        twidth = right - left
+        if anchor == 'rs':
+            lx = xy[0] - twidth  # Pour mettre sur la gauche.
+        elif anchor == 'ms':
+            lx = xy[0] - (twidth / 2)  # Centre pour ms
+        elif anchor == 'ls':
+            lx = xy[0]  # Pour mettre sur la droite.
+        else:
+            lx = 0
+
+        draw.line((lx, xy[1], lx + twidth, xy[1]))
+
+
+in_rendu = in_rendu if in_rendu is not None else 0
+out_rendu = out_rendu if out_rendu is not None else nb_image
+
+# On calcule une fois pour toute la position des colonnes.
+colonne_gauche = int(largeur / 3)
+colonne_centre = int(largeur / 2)
+colonne_droite = int((largeur / 3) * 2)
+
+
+for j in range(in_rendu, out_rendu):
+    print('Image : ' + str(j) + '/' + str(out_rendu))
 
     # L'image PNG.
-    image = Image.new(mode='RGB', size=(1920, 1080), color=couleur_fond)
+    image = Image.new(mode='RGB', size=(largeur, hauteur), color=couleur_fond)
 
     # create new image
     draw = ImageDraw.Draw(image)
     draw.fontmode = 'l'  # Anti-aliasing. TODO : je ne sais pas s'il fonctionne...
 
-    for i in range(0, len(generique['centre'])):
+    for i in range(0, len(generique['centre-centre'])):
         # Pour anchor : https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html
 
-        draw.text(
-            xy=(
-                (largeur / 3) - espace,
-                hauteur + ((taille_typo + espace_ligne) * i) - (j * (vitesse * 2))
-            ),
-            text=generique['gauche-gauche'][i].upper() if majuscule_poste else generique['gauche'][i],
-            font=fnt,
-            fill=couleur_texte,
-            anchor='rs'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la droite.
-        )
-        draw.text(
-            xy=(
-                (largeur / 3) + espace,
-                hauteur + ((taille_typo + espace_ligne) * i) - (j * (vitesse * 2))
-            ),
-            text=generique['droite-gauche'][i],
-            font=fnt,
-            fill=couleur_texte,
-            anchor='ls'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la gauche.
-        )
+        hauteur_texte = hauteur + ((style_general['taille'] + style_general['espace_ligne']) * i) - (j * (vitesse * 2))
 
-        # Centre
-        draw.text(
-            xy=(
-                (largeur / 2) - espace,
-                hauteur + ((taille_typo + espace_ligne) * i) - (j * (vitesse * 2))
-            ),
-            text=generique['gauche-centre'][i].upper() if majuscule_poste else generique['gauche'][i],
-            font=fnt,
-            fill=couleur_texte,
-            anchor='rs'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la droite.
-        )
-        draw.text(
-            xy=(
-                (largeur / 2),
-                hauteur + ((taille_typo + espace_ligne) * i) - (j * (vitesse * 2))
-            ),
-            text=generique['centre'][i],
-            font=fnt,
-            fill=couleur_texte,
-            anchor='ms'  # Dire qu'on est basé sur la "baseline" et d'aligner le texte au centre.
-        )
-        draw.text(
-            xy=(
-                (largeur / 2) + espace,
-                hauteur + ((taille_typo + espace_ligne) * i) - (j * (vitesse * 2))
-            ),
-            text=generique['droite-centre'][i],
-            font=fnt,
-            fill=couleur_texte,
-            anchor='ls'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la gauche.
-        )
+        # Gauche :
+        if generique['gauche-gauche'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_gauche - generique['style-gauche-gauche'][i]['espace_gauche_droite'] - generique['style-gauche-gauche'][i]['espace_3colonnes'],
+                    hauteur_texte
+                ),
+                texte=generique['gauche-gauche'][i],
+                style=generique['style-gauche-gauche'][i],
+                anchor='rs'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la droite.
+            )
+        if generique['gauche-centre'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_gauche - generique['style-gauche-centre'][i]['espace_3colonnes'],
+                    hauteur_texte
+                ),
+                texte=generique['gauche-centre'][i],
+                style=generique['style-gauche-centre'][i],
+                anchor='ms'  # Dire qu'on est basé sur la "baseline" et d'aligner au centre.
+            )
+        if generique['gauche-droite'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_gauche + generique['style-gauche-droite'][i]['espace_gauche_droite'] - generique['style-gauche-droite'][i]['espace_3colonnes'],
+                    hauteur_texte
+                ),
+                texte=generique['gauche-droite'][i],
+                style=generique['style-gauche-droite'][i],
+                anchor='ls'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la gauche.
+            )
 
-        # Droite
-        draw.text(
-            xy=(
-                ((largeur / 3) * 2) - espace,
-                hauteur + ((taille_typo + espace_ligne) * i) - (j * (vitesse * 2))
-            ),
-            text=generique['gauche-droite'][i].upper() if majuscule_poste else generique['gauche'][i],
-            font=fnt,
-            fill=couleur_texte,
-            anchor='rs'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la droite.
-        )
-        draw.text(
-            xy=(
-                ((largeur / 3) * 2) + espace,
-                hauteur + ((taille_typo + espace_ligne) * i) - (j * (vitesse * 2))
-            ),
-            text=generique['droite-droite'][i],
-            font=fnt,
-            fill=couleur_texte,
-            anchor='ls'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la gauche.
-        )
+        # Centre :
+        if generique['centre-gauche'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_centre - generique['style-centre-gauche'][i]['espace_gauche_droite'],
+                    hauteur_texte
+                ),
+                texte=generique['centre-gauche'][i],
+                style=generique['style-centre-gauche'][i],
+                anchor='rs'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la droite.
+            )
+        if generique['centre-centre'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_centre,
+                    hauteur_texte
+                ),
+                texte=generique['centre-centre'][i],
+                style=generique['style-centre-centre'][i],
+                anchor='ms'  # Dire qu'on est basé sur la "baseline" et d'aligner le texte au centre.
+            )
+        if generique['centre-droite'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_centre + generique['style-centre-droite'][i]['espace_gauche_droite'],
+                    hauteur_texte
+                ),
+                texte=generique['centre-droite'][i],
+                style=generique['style-centre-droite'][i],
+                anchor='ls'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la gauche.
+            )
 
-    draw.rectangle(((0, 0), (largeur, 140)), fill='black')
-    draw.rectangle(((0, hauteur), (largeur, hauteur - 140)), fill='black')
+        # S'il y a une image, on l'ajoute.
+        if generique['image-centre-centre'][i] is not None:
+            image_ajouter = Image.open(dossier_travail + 'image_a_ajouter\\' + generique['image-centre-centre'][i])
+            image.paste(image_ajouter, (int(colonne_centre - (image_ajouter.width/2)), hauteur_texte))
+
+        # Droite :
+        if generique['droite-gauche'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_droite - generique['style-droite-gauche'][i]['espace_gauche_droite'] + generique['style-droite-gauche'][i]['espace_3colonnes'],
+                    hauteur_texte
+                ),
+                texte=generique['droite-gauche'][i],
+                style=generique['style-droite-gauche'][i],
+                anchor='rs'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la droite.
+            )
+        if generique['droite-centre'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_droite + generique['style-droite-centre'][i]['espace_3colonnes'],
+                    hauteur_texte
+                ),
+                texte=generique['droite-centre'][i],
+                style=generique['style-droite-centre'][i],
+                anchor='ms'  # Dire qu'on est basé sur la "baseline" et d'aligner au centre.
+            )
+        if generique['droite-droite'][i] != '':
+            drawText(
+                draw=draw,
+                xy=(
+                    colonne_droite + generique['style-droite-droite'][i]['espace_gauche_droite'] + generique['style-droite-droite'][i]['espace_3colonnes'],
+                    hauteur_texte
+                ),
+                texte=generique['droite-droite'][i],
+                style=generique['style-droite-droite'][i],
+                anchor='ls'  # Dire qu'on est basé sur la "baseline" et d'aligner sur la gauche.
+            )
+
+    # L'output blanking :
+    draw.rectangle(((0, 0), (largeur, crop)), fill='black')
+    draw.rectangle(((0, hauteur), (largeur, hauteur - crop)), fill='black')
 
     # Après création de l'image, on sauve.
     image.save('C:\\TMP\\png\\generique_' + digit(8, j) + '.png')
