@@ -37,13 +37,16 @@ with open(dossier_travail + 'font.csv', newline='', encoding='utf-8') as csvfile
     for ligne in contenu:
         if i != 0:
             print(ligne[0])
-            liste_font.append({
-                'nom': ligne[0],
-                'normal': ligne[1],  # Ici ce sont les noms de fichier.
-                'gras': ligne[2],
-                'italique': ligne[3],
-                'italique-gras': ligne[4]
-            })
+
+            # Il peut y avoir des lignes vides par erreur.
+            if ligne[0] != '':
+                liste_font.append({
+                    'nom': ligne[0],
+                    'normal': ligne[1],  # Ici ce sont les noms de fichier.
+                    'gras': ligne[2],
+                    'italique': ligne[3],
+                    'italique-gras': ligne[4]
+                })
 
         i = i + 1
 
@@ -62,6 +65,13 @@ def findFontByName(nom: str):
 
 liste_style = []
 
+
+# Récupère le "tuple" (R, G, B, A) couleur d'une cellule.
+def decodeCouleur(couleur: str) -> tuple:
+    canaux = couleur.split()
+    return (int(canaux[0]), int(canaux[1]), int(canaux[2]), int(canaux[3]))
+
+
 # Récupère dans un CSV les différents styles du projet :
 with open(dossier_travail + 'style.csv', newline='', encoding='utf-8') as csvfile:
     contenu = csv.reader(csvfile, delimiter=';', quotechar='|')
@@ -70,26 +80,29 @@ with open(dossier_travail + 'style.csv', newline='', encoding='utf-8') as csvfil
     for ligne in contenu:
         if i != 0:
 
-            font = findFontByName(ligne[1]) # Récupère toutes les possibilités.
-            if ligne[4] == 'True' and ligne[5] == 'True':
-                font = font['italique-gras']
-            elif ligne[5] == 'True':
-                font = font['italique']
-            elif ligne[4] == 'True':
-                font = font['gras']
-            else:
-                font = font['normal']
+            # Il se peut qu'on mette des lignes vides (par erreur ou autre).
+            if ligne[0] != '':
 
-            liste_style.append({
-                'nom': ligne[0],
-                'font': font,
-                'souligner': True if ligne[6] == 'True' else False,
-                'taille': int(ligne[2]),
-                'couleur': ligne[3].split(),
-                'espace_gauche_droite': int(ligne[7]),
-                'espace_3colonnes': int(ligne[8]),
-                'espace_ligne': int(ligne[9])
-            })
+                font = findFontByName(ligne[1]) # Récupère toutes les possibilités.
+                if ligne[4] == 'True' and ligne[5] == 'True':
+                    font = font['italique-gras']
+                elif ligne[5] == 'True':
+                    font = font['italique']
+                elif ligne[4] == 'True':
+                    font = font['gras']
+                else:
+                    font = font['normal']
+
+                liste_style.append({
+                    'nom': ligne[0],
+                    'font': font,
+                    'souligner': True if ligne[6] == 'True' else False,
+                    'taille': int(ligne[2]),
+                    'couleur': decodeCouleur(ligne[3]),
+                    'espace_gauche_droite': int(ligne[7]),
+                    'espace_3colonnes': int(ligne[8]),
+                    'espace_ligne': int(ligne[9])
+                })
 
         i = i + 1
 
@@ -112,6 +125,7 @@ def findStyleByName(nom: str):
 # Paramètres :
 fichier_csv = dossier_travail + 'generique.csv'
 
+
 # Récupère dans un CSV les réglages du projet :
 with open(dossier_travail + 'reglage.csv', newline='', encoding='utf-8') as csvfile:
     contenu = csv.reader(csvfile, delimiter=';', quotechar='|')
@@ -131,7 +145,8 @@ with open(dossier_travail + 'reglage.csv', newline='', encoding='utf-8') as csvf
 
             print('Style général : ' + str(style_general))
 
-            couleur_fond = ligne[5]  # Il faut une bonne raison pour que le fond ne soit pas noir.
+            couleur_fond = decodeCouleur(ligne[5])  # Il faut une bonne raison pour que le fond ne soit pas noir.
+            couleur_blanking = decodeCouleur(ligne[6])  # Couleur des blankings.
 
         i = i + 1
 
@@ -151,6 +166,7 @@ with open(dossier_travail + 'rendu.csv', newline='', encoding='utf-8') as csvfil
 # Valeur du crop si un output blanking est appliqué (si un output blanking n'est pas reconnu, on n'en met pas).
 crop = 0
 
+# Crop HD :
 if ratio == '2.39':
     crop = 138
 elif ratio == '1.85':
@@ -186,6 +202,8 @@ generique = {
     'style-droite-droite': [],
 
     'style-ligne': [],
+    'y_debut': [],
+    'y_fin': [],
 
     'commentaire': []
 }
@@ -218,7 +236,7 @@ def getStyle(style_general, style_colonne, style_ligne):
         style['espace_3colonnes'] = style_ligne['espace_3colonnes']
         style['espace_ligne'] = style_ligne['espace_ligne']
 
-    style['font_objet'] = ImageFont.truetype(style['font'], int(style['taille']))
+    style['font_objet'] = ImageFont.truetype(style['font'], style['taille'])
 
     return style
 
@@ -295,6 +313,11 @@ with open(fichier_csv, newline='', encoding='utf-8') as csvfile:
             generique['droite-droite'].append(ligne[16].lstrip())
             generique['style-droite-droite'].append(getStyle(style_general, findStyleByName(ligne[17]), style_ligne))
 
+            # hauteur_texte = hauteur + ((style_general['taille'] + style_general['espace_ligne']) * i)
+
+            # generique['y_debut'].append()
+            # generique['y_fin'].append()
+
             generique['style-ligne'].append(style_ligne)
             generique['commentaire'].append(ligne[19])
 
@@ -310,7 +333,7 @@ def drawText(draw, xy, texte, style, anchor):
         xy=xy,
         text=texte,
         font=style['font_objet'],
-        fill=(int(style['couleur'][0]), int(style['couleur'][1]), int(style['couleur'][2])),
+        fill=style['couleur'],
         anchor=anchor
     )
 
@@ -327,7 +350,12 @@ def drawText(draw, xy, texte, style, anchor):
         else:
             lx = 0
 
-        draw.line((lx, xy[1], lx + twidth, xy[1]))
+        # Souligne d'une ligne.
+        draw.line((lx, xy[1], lx + twidth, xy[1]), fill=style['couleur'])
+
+        # En UHD, on souligne 2x :
+        if style['taille'] > 20:
+            draw.line((lx, xy[1]+1, lx + twidth, xy[1]+1), fill=style['couleur'])
 
 
 in_rendu = in_rendu if in_rendu is not None else 0
@@ -338,12 +366,14 @@ colonne_gauche = int(largeur / 3)
 colonne_centre = int(largeur / 2)
 colonne_droite = int((largeur / 3) * 2)
 
+image = None
 
 for j in range(in_rendu, out_rendu):
     print('Image : ' + str(j) + '/' + str(out_rendu))
 
     # L'image PNG.
-    image = Image.new(mode='RGB', size=(largeur, hauteur), color=couleur_fond)
+    # Pas de canal alpha en plus. couleur_fond
+    image = Image.new(mode='RGBA', size=(largeur, hauteur*16), color=couleur_fond)
 
     # create new image
     draw = ImageDraw.Draw(image)
@@ -427,7 +457,9 @@ for j in range(in_rendu, out_rendu):
         # S'il y a une image, on l'ajoute.
         if generique['image-centre-centre'][i] is not None:
             image_ajouter = Image.open(dossier_travail + 'image_a_ajouter\\' + generique['image-centre-centre'][i])
-            image.paste(image_ajouter, (int(colonne_centre - (image_ajouter.width/2)), hauteur_texte))
+            # Le mask est obligatoire pour une image alpha car sinon cela "ajoute l'alpha" à l'image (remplace le fond par un truc transparent).
+            # Du coup avec le masque, on code que les pixels qui change.
+            image.paste(image_ajouter, (int(colonne_centre - (image_ajouter.width/2)), hauteur_texte), mask=image_ajouter)
 
         # Droite :
         if generique['droite-gauche'][i] != '':
@@ -465,8 +497,21 @@ for j in range(in_rendu, out_rendu):
             )
 
     # L'output blanking :
-    draw.rectangle(((0, 0), (largeur, crop)), fill='black')
-    draw.rectangle(((0, hauteur), (largeur, hauteur - crop)), fill='black')
+    if crop != 0:
+        draw.rectangle(((0, 0), (largeur, crop)), fill=couleur_blanking)
+        draw.rectangle(((0, hauteur), (largeur, hauteur - crop)), fill=couleur_blanking)
 
     # Après création de l'image, on sauve.
-    image.save('C:\\TMP\\png\\generique_' + digit(8, j) + '.png')
+    image.save('C:\\TMP\\png\\generique_' + str(largeur) + 'x' + str(hauteur) + '_' + digit(8, j) + '.png')
+
+    # exif_ifd = {piexif.ExifIFD.UserComment: 'my message'}
+    # exif_dict = {"0th": {}, "Exif": exif_ifd, "1st": {}, "thumbnail": None, "GPS": {}}
+    # exif_dat = piexif.dump(exif_dict)
+    # image.save('C:\\TMP\\png\\generique_' + str(largeur) + 'x' + str(hauteur) + '_' + digit(8, j) + '.tif', compression='tiff_lzw', exif=exif_dat)
+
+
+# Ici, on sait que l'image est générée
+for i in range(0, nb_image):
+    print('Ici ?')
+    sequence = image.crop((0, i * (vitesse * 2), largeur, i * (vitesse * 2) + hauteur))
+    sequence.save('C:\\TMP\\png\\autre\\generique_' + str(largeur) + 'x' + str(hauteur) + '_' + digit(8, i) + '.png')
