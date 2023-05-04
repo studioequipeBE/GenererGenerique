@@ -1,0 +1,3 @@
+largeur;hauteur;ratio;vitesse;style;couleur_fond;couleur_blanking
+Largeur image (px);Hauteur image(px);Ratio (output blanking: '2.39');Vitesse de défilement (2, 4);Style de base;Couleur de fond;Couleur des blankings
+3840;2160;None;8;Base UHD;0 0 0 255;0 0 0 255

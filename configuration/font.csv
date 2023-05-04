@@ -1,0 +1,18 @@
+Nom de la font;Système d'exploitation;Fichier font normal;Fichier font gras;Fichier font italique;Fichier font italique gras;Commentaire
+Arial;Windows;arial.ttf;arialbd.ttf;ariali.ttf;arialbi.ttf;
+Calibri;Windows;calibri.ttf;calibrib.ttf;calibrii.ttf;calibriz.ttf;
+Cambria;Windows;cambria.ttc;cambriab.ttf;cambriai.ttf;cambriaz.ttf;
+Courier New;Windows;cour.ttf;courbd.ttf;couri.ttf;courbi.ttf;
+Time New Roman;Windows;times.ttf;timesbd.ttf;timesi.ttf;timesbi.ttf;
+;;;;;;
+Arial;MacOS;Arial.ttf;Arial Bold.ttf;Arial Italic.ttf;Arial Bold Italic.ttf;
+Courier New;MacOS;Courier New.ttf;Courier New Bold.ttf;Courier New Italic.ttf;Courier New Bold Italic.ttf;
+DIN;MacOS;DIN Alternate Bold.ttf;;;;Seul disponible.
+DIN Condensed;MacOS;DIN Condensed Bold.ttf;;;;Seul disponible.
+Georgia;MacOS;Georgia.ttf;Georgia Bold.ttf;Georgia Italic.ttf;Georgia Bold Italic.ttf;
+Impact;MacOS;Impact.ttf;;;;Que normal.
+STIXGeneral;MacOS;STIXGeneral.otf;STIXGeneralBol.otf;STIXGeneralItalic.otf;STIXGeneralBolIta.otf;Extension OTF.
+Tahoma;MacOS;Tahoma.ttf;Tahoma Bold.ttf;;;Il n'y a qu'une version gras en plus.
+Time New Roman;MacOS;Times New Roman.ttf;Times New Roman Bold.ttf;Times New Roman Italic.ttf;Times New Roman Bold Italic.ttf;
+Trebuchet MS;MacOS;Trebuchet MS.ttf;Trebuchet MS Bold.ttf;Trebuchet MS Italic.ttf;Trebuchet MS Bold Italic.ttf;
+Verdana;MacOS;Verdana.ttf;Verdana Bold.ttf;Verdana Italic.ttf;Verdana Bold Italic.ttf;

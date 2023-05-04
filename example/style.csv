@@ -1,0 +1,11 @@
+Nom du style;Font;Taille;Couleur;Gras;Italic;Souligner;Epaisseur ligne (pour souligner);Espace entre le texte et la ligne (quand on souligne);"Espace ""gauche-droite""";Espace entre les lignes (px);Espace ajouté quand découpé en 3 colonnes;Commentaire
+Base;Arial;20;206 206 206 255;False;False;False;;;6;2;0;Tente un blanc cassé.
+Base souligner;Arial;20;206 206 206 255;False;False;True;1;0;6;2;0;Tente un blanc cassé.
+Base gras;Arial;20;206 206 206 255;True;False;False;;;6;2;0;Tente un blanc cassé.
+Base italique;Arial;20;206 206 206 255;False;True;False;;;6;2;0;Tente un blanc cassé.
+Base gras italique;Arial;20;206 206 206 255;True;True;False;;;6;2;0;Tente un blanc cassé.
+Petit;Arial;16;206 206 206 255;False;False;False;;;6;2;200;Tente un blanc cassé.
+Base UHD;Arial;42;206 206 206 255;False;False;False;;;12;4;0;Pour l'UHD.
+Petit UHD;Arial;34;206 206 206 255;False;False;False;;;12;4;400;Pour l'UHD.
+Base souligner UHD;Arial;42;206 206 206 255;False;False;True;2;0;12;4;0;Pour l'UHD.
+Base gras UHD;Arial;42;206 206 206 255;True;False;False;;;12;4;0;Pour l'UHD.
